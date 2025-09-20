@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
+import { PermissionsController } from './permissions.controller';
+import { PermissionsService } from './permissions.service';
 
-describe('UsersController', () => {
-  let controller: UsersController;
+describe('PermissionsController', () => {
+  let controller: PermissionsController;
 
   const serviceMock = {
     create: jest.fn(),
@@ -15,11 +15,11 @@ describe('UsersController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [UsersController],
-      providers: [{ provide: UsersService, useValue: serviceMock }],
+      controllers: [PermissionsController],
+      providers: [{ provide: PermissionsService, useValue: serviceMock }],
     }).compile();
 
-    controller = module.get(UsersController);
+    controller = module.get(PermissionsController);
   });
 
   it('should be defined', () => {

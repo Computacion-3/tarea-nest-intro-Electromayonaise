@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RolesController } from './roles.controller';
-import { RolesService } from './roles.service';
+import { GamesController } from './games.controller';
+import { GamesService } from './games.service';
 
-describe('RolesController', () => {
-  let controller: RolesController;
-  const mockRolesService = {
+describe('GamesController', () => {
+  let controller: GamesController;
+
+  const serviceMock = {
     create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
@@ -14,11 +15,11 @@ describe('RolesController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [RolesController],
-      providers: [{ provide: RolesService, useValue: mockRolesService }],
+      controllers: [GamesController],
+      providers: [{ provide: GamesService, useValue: serviceMock }],
     }).compile();
 
-    controller = module.get(RolesController);
+    controller = module.get(GamesController);
   });
 
   it('should be defined', () => {

@@ -1,69 +1,57 @@
-// src/users/users.service.ts
-
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { RolesService } from '../roles/roles.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
-        private users: User[] = [];
-        private idCounter = 1;
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    private readonly rolesService: RolesService,
+  ) {}
 
-        constructor(private rolesService: RolesService) {}
+  async create(dto: CreateUserDto) {
+    const role = await this.rolesService.findByName(dto.roleName);
+    if (!role) throw new BadRequestException('Role not found');
 
-        create(createUserDto: CreateUserDto) {
-                // Buscar el rol por nombre
-                const role = this.rolesService.findByName(createUserDto.roleName);
-                if (!role) {
-                        throw new Error('Role not found');
-                }
+    const user = this.userRepo.create({
+      username: dto.username,
+      email: dto.email,
+      passwordHash: dto.passwordHash,
+      bio: dto.bio,
+      role,
+    });
+    return this.userRepo.save(user);
+  }
 
-                const newUser: User = new User(
-                        this.idCounter++,
-                        createUserDto.username,
-                        createUserDto.email,
-                        createUserDto.passwordHash,
-                        createUserDto.bio,
-                        role.id, // Asignar el ID del rol
-                );
-                this.users.push(newUser);
-                return newUser;
-        }
+  findAll() {
+    return this.userRepo.find({ relations: ['role'] });
+  }
 
+  async findOne(id: number) {
+    const user = await this.userRepo.findOne({ where: { id }, relations: ['role'] });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
 
-        /**
-         * Retorna todos los usuarios.
-         */
-        findAll() {
-                return this.users;
-        }
+  async update(id: number, dto: UpdateUserDto) {
+    if (dto.roleName) {
+      const role = await this.rolesService.findByName(dto.roleName);
+      if (!role) throw new BadRequestException('Role not found');
+      await this.userRepo.update(id, { ...dto, role });
+    } else {
+      await this.userRepo.update(id, dto);
+    }
+    return this.findOne(id);
+  }
 
-        /**
-         * Busca un usuario por su ID.
-         */
-        findOne(id: number) {
-                return this.users.find((user) => user.id === id);
-        }
-
-        /**
-         * Actualiza un usuario existente.
-         */
-        update(id: number, updateUserDto: UpdateUserDto) {
-                const userIndex = this.users.findIndex((user) => user.id === id);
-                if (userIndex === -1) return null;
-                this.users[userIndex] = { ...this.users[userIndex], ...updateUserDto };
-                return this.users[userIndex];
-        }
-
-        /**
-         * Elimina un usuario por su ID.
-         */
-        remove(id: number) {
-                const userIndex = this.users.findIndex((user) => user.id === id);
-                if (userIndex === -1) return null;
-                const removedUser = this.users.splice(userIndex, 1)[0];
-                return removedUser;
-        }
+  async remove(id: number) {
+    const res = await this.userRepo.delete(id);
+    if (!res.affected) throw new NotFoundException('User not found');
+    return { id };
+  }
 }

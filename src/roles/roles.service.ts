@@ -1,70 +1,47 @@
-// src/roles/roles.service.ts
-
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Role } from './entities/role.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class RolesService {
-        private roles: Role[] = [];
-        private idCounter = 1;
+  constructor(
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+  ) {}
 
-        /**
-         * Crea un nuevo rol.
-         */
-        create(createRoleDto: CreateRoleDto) {
-                const newRole = new Role(
-                        this.idCounter++,
-                        createRoleDto.name,
-                        createRoleDto.description,
-                );
-                this.roles.push(newRole);
-                return newRole;
-        }
+  async create(createRoleDto: CreateRoleDto): Promise<Role> {
+    const role = this.roleRepository.create(createRoleDto);
+    return this.roleRepository.save(role);
+  }
 
-        /**
-         * Retorna todos los roles.
-         */
-        findAll() {
-                return this.roles;
-        }
+  findAll(): Promise<Role[]> {
+    return this.roleRepository.find({ relations: ['permissions'] });
+  }
 
-        /**
-         * Busca un rol por su ID.
-         */
-        findOne(id: number) {
-                return this.roles.find((role) => role.id === id);
-        }
+  async findOne(id: number): Promise<Role> {
+    const role = await this.roleRepository.findOne({
+      where: { id },
+      relations: ['permissions'],
+    });
+    if (!role) throw new NotFoundException('Role not found');
+    return role;
+  }
 
-        /**
-         * Actualiza un rol existente.
-         */
-        update(id: number, updateRoleDto: UpdateRoleDto) {
-                const role = this.roles.find((role) => role.id === id);
-                if (role) {
-                        Object.assign(role, updateRoleDto);
-                        return role;
-                }
-                return null;
-        }
+  async update(id: number, dto: UpdateRoleDto): Promise<Role> {
+    await this.roleRepository.update(id, dto);
+    return this.findOne(id);
+  }
 
-        /**
-         * Elimina un rol por su ID.
-         */
-        remove(id: number) {
-                const index = this.roles.findIndex((role) => role.id === id);
-                if (index !== -1) {
-                        this.roles.splice(index, 1);
-                        return { id };
-                }
-                return null;
-        }
+  async remove(id: number): Promise<{ id: number }> {
+    const res = await this.roleRepository.delete(id);
+    if (!res.affected) throw new NotFoundException('Role not found');
+    return { id };
+  }
 
-        /**
-         * Busca un rol por su nombre.
-         */
-        findByName(name: string): Role | undefined {
-                return this.roles.find((role) => role.name === name);
-        }
+  async findByName(name: string): Promise<Role | null> {
+    return this.roleRepository.findOne({ where: { name } });
+  }
 }

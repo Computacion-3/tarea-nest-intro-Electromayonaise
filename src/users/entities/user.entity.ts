@@ -1,28 +1,40 @@
-// src/users/entities/user.entity.ts
+import { Role } from 'src/roles/entities/role.entity';
+import { Game } from 'src/games/entities/game.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 
+@Entity('users')
 export class User {
-        id: number;
-        username: string;
-        email: string;
-        passwordHash: string;
-        bio: string;
-        createdAt: Date;
-        roleId: number; // Nuevo campo
+  @PrimaryGeneratedColumn()
+  id: number;
 
-        constructor(
-                id: number,
-                username: string,
-                email: string,
-                passwordHash: string,
-                bio: string,
-                roleId: number, // Nuevo parámetro
-        ) {
-                this.id = id;
-                this.username = username;
-                this.email = email;
-                this.passwordHash = passwordHash;
-                this.bio = bio;
-                this.createdAt = new Date();
-                this.roleId = roleId;
-        }
+  @Column({ unique: true })
+  username: string;
+
+  @Column({ unique: true })
+  email: string;
+
+  @Column()
+  passwordHash: string;
+
+  @Column({ nullable: true })
+  bio: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @ManyToOne(() => Role, (role) => role.users, { eager: true })
+  @JoinColumn({ name: 'role_id' })
+  role: Role;
+
+  // TODO del MD: relación con Games (modelo: un usuario crea/tiene muchos juegos)
+  @OneToMany(() => Game, (game) => game.owner)
+  games: Game[];
 }
